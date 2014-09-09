@@ -3,4 +3,6 @@
 /local.properties
 /.idea/
 .DS_Store
+.vagrant/
 /build
+/luajit-dist/

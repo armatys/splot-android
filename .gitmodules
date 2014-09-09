@@ -1,3 +1,6 @@
 [submodule "luajit"]
 	path = luajit
 	url = https://source.makenika.pl/mako/luajit.git
+[submodule "luajava"]
+	path = luajava
+	url = https://source.makenika.pl/mako/luajava.git
