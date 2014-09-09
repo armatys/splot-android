@@ -5,7 +5,7 @@ android {
     buildToolsVersion "20.0.0"
 
     defaultConfig {
-        applicationId "makenika.pl.splot"
+        applicationId "pl.makenika.app.splot"
         minSdkVersion 10
         targetSdkVersion 20
         versionCode 1
