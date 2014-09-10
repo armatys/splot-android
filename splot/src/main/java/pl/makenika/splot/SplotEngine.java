@@ -107,8 +107,9 @@ public class SplotEngine {
 
             if (is == null) {
                 try {
-                    final int rawId = R.raw.class.getField(rawName).getInt(null);
-                    is = resources.openRawResource(rawId);
+                    // TODO
+//                    final int rawId = R.raw.class.getField(rawName).getInt(null);
+//                    is = resources.openRawResource(rawId);
                 } catch (Exception e) {
                 }
             }

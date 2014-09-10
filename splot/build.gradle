@@ -1,4 +1,84 @@
+import java.util.regex.Pattern
+
 apply plugin: 'com.android.library'
+
+apply plugin: SplotInternalPlugin
+
+class TypedLuaCompile extends DefaultTask {
+
+}
+
+class SplotInternalPlugin implements Plugin<Project> {
+    void apply(Project project) {
+        def plugin = project.plugins.findPlugin('android')?:project.plugins.findPlugin('android-library')
+        if (!plugin) {
+            throw new GradleException('You must apply the Android plugin or the Android library plugin before using the SplotInternalPlugin plugin.')
+        }
+
+        project.android {
+//            sourceSets {
+//                main.java.srcDir('src/main/lua')
+//            }
+
+            def luaSourcesPath = "src/main/res/raw"
+            def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
+            def variants = plugin.class.name.endsWith('.LibraryPlugin') ? libraryVariants : applicationVariants
+            variants.all {
+                def variantName = name
+                def taskName = "compile${variantName.capitalize()}TypedLua"
+                project.task(taskName) {
+                    ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
+                    ext.destDir = new File(project.buildDir, "intermediates/res/${variantName}/raw")
+//                    inputs.file srcFiles
+//                    outputs.dir destDir
+                    doLast {
+                        destDir.mkdirs()
+                        srcFiles.getFiles().each { File file ->
+                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll("\$1.l.lua")
+                            def compileCommand = [ "luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+                            println compileCommand
+                            Process compileProcess = compileCommand.execute()
+                            compileProcess.in.eachLine { line -> println line }
+                            compileProcess.err.eachLine { line -> println line }
+                        }
+                    }
+                }
+
+                javaCompile.dependsOn(taskName)
+            }
+        }
+    }
+}
+
+class SplotTask extends DefaultTask {
+    SplotTask() {
+
+//        setName("splotTask")
+//        project.tasks.compileReleaseJava.dependsOn(this)
+//        ext.srcFile = file('mountains.xml')
+//        ext.destDir = new File(buildDir, 'generated')
+//        inputs.file srcFile
+//        outputs.dir destDir
+    }
+
+    @TaskAction
+    def generate() {
+        def theFiles = project.files("${project.sourceSets.main.output.resourcesDir}")
+        println "the files::"
+        println theFiles
+    }
+}
+
+//task('splotTask') << {
+//    println "${project.sourceSets}"
+//    def theFiles = project.files("${project.sourceSets.main.output.resourcesDir}")
+//    println "the files::"
+//    println theFiles
+//}
+//
+//gradle.projectsEvaluated {
+//    compileReleaseJava.dependsOn(splotTask)
+//}
 
 android {
     compileSdkVersion 20
@@ -21,6 +101,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+//    sourceSets {
+//        main {
+//            lua.srcDirs = ['']
+//        }
+//    }
 }
 
 dependencies {
