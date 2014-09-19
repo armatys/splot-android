@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+buildscript {
+    repositories {
+        mavenLocal()
+    }
+    dependencies {
+        classpath group: 'pl.makenika.splot.gradle', name: 'splot-gradle', version: '1.0-SNAPSHOT'
+    }
+}
+
+apply plugin: "splot"
+
 android {
     compileSdkVersion 20
     buildToolsVersion "20.0.0"

@@ -87,7 +87,7 @@ public class SplotEngine {
         @Override public int execute() throws LuaException {
             final Resources resources = mContext.getResources();
             final String originalName = L.toString(-1);
-            final String rawName = originalName.replace(".", "_");
+            final String rawName = "lua_" + originalName.replace(".", "_");
             final String assetName = originalName.replace(".", "/");
             InputStream is;
 
@@ -107,9 +107,8 @@ public class SplotEngine {
 
             if (is == null) {
                 try {
-                    // TODO
-//                    final int rawId = R.raw.class.getField(rawName).getInt(null);
-//                    is = resources.openRawResource(rawId);
+                    final int rawId = R.raw.class.getField(rawName).getInt(null);
+                    is = resources.openRawResource(rawId);
                 } catch (Exception e) {
                 }
             }

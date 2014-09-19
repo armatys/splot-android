@@ -9,4 +9,4 @@ rm android-ndk32-r10-linux-x86.tar.bz2
 echo 'export PATH=$HOME/android-ndk-r10:$PATH' >> ~/.bash_profile
 
 sudo apt-get update
-sudo apt-get install default-jdk
+sudo apt-get --assume-yes install default-jdk

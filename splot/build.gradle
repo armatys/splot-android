@@ -4,9 +4,9 @@ apply plugin: 'com.android.library'
 
 apply plugin: SplotInternalPlugin
 
-class TypedLuaCompile extends DefaultTask {
-
-}
+//class TypedLuaCompile extends DefaultTask {
+//
+//}
 
 class SplotInternalPlugin implements Plugin<Project> {
     void apply(Project project) {
@@ -28,16 +28,16 @@ class SplotInternalPlugin implements Plugin<Project> {
                 def taskName = "compile${variantName.capitalize()}TypedLua"
                 project.task(taskName) {
                     ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
-                    ext.destDir = new File(project.buildDir, "intermediates/res/${variantName}/raw")
+                    ext.destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
 //                    inputs.file srcFiles
 //                    outputs.dir destDir
                     doLast {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
-                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll("\$1.l.lua")
-                            def compileCommand = [ "luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/lua_$1.lua/)
+                            def compileCommand = [ "/usr/local/bin/luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
                             println compileCommand
-                            Process compileProcess = compileCommand.execute()
+                            Process compileProcess = compileCommand.execute(["LUA_PATH=typedlua/?.lua;typedlua/typedlua/?.lua;;"], null)
                             compileProcess.in.eachLine { line -> println line }
                             compileProcess.err.eachLine { line -> println line }
                         }
@@ -50,24 +50,16 @@ class SplotInternalPlugin implements Plugin<Project> {
     }
 }
 
-class SplotTask extends DefaultTask {
-    SplotTask() {
-
+//class SplotTask extends DefaultTask {
+//    SplotTask() {
+//
 //        setName("splotTask")
 //        project.tasks.compileReleaseJava.dependsOn(this)
 //        ext.srcFile = file('mountains.xml')
 //        ext.destDir = new File(buildDir, 'generated')
 //        inputs.file srcFile
 //        outputs.dir destDir
-    }
-
-    @TaskAction
-    def generate() {
-        def theFiles = project.files("${project.sourceSets.main.output.resourcesDir}")
-        println "the files::"
-        println theFiles
-    }
-}
+//§
 
 //task('splotTask') << {
 //    println "${project.sourceSets}"

@@ -1,1 +1,1 @@
-include ':app', ':splot'
+include ':app', ':splot', ':splot-gradle'
