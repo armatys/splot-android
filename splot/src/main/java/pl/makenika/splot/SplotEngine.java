@@ -30,8 +30,8 @@ public class SplotEngine {
     }
 
     public Pair<Boolean, String> loadLuaModule(String luaModuleName) throws IOException {
-        luaModuleName = luaModuleName.replaceAll("\\.", "_");
-        final InputStream is = mContext.getAssets().open("splot_lua_" + luaModuleName + ".lua");
+        luaModuleName = luaModuleName.replaceAll("\\.", "/");
+        final InputStream is = mContext.getAssets().open("splot_lua/" + luaModuleName + ".lua");
         return loadInputStream(is);
     }
 
@@ -92,11 +92,12 @@ public class SplotEngine {
         @Override public int execute() throws LuaException {
             final Resources resources = mContext.getResources();
             final String originalName = L.toString(-1);
+            final String assetName = originalName.replaceAll("\\.", "/");
             final String rawName = "splot_lua_" + originalName.replaceAll("\\.", "_");
             InputStream is;
 
             try {
-                is = mContext.getAssets().open(rawName + ".lua");
+                is = mContext.getAssets().open("splot_lua/" + assetName + ".lua");
             } catch (IOException e) {
                 is = null;
             }

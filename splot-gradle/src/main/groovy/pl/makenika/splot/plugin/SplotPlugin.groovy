@@ -34,7 +34,7 @@ public class SplotPlugin implements Plugin<Project> {
                 def taskName = "splot${variantName.capitalize()}"
                 project.task(taskName) {
                     ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
-                    ext.destDir = new File(project.buildDir, "intermediates/assets/${variantName}")
+                    ext.destDir = new File(project.buildDir, "intermediates/assets/${variantName}/splot_lua")
                     inputs.file srcFiles
                     outputs.dir destDir
 
@@ -42,26 +42,33 @@ public class SplotPlugin implements Plugin<Project> {
                         File extractedArchivePath = new File(project.buildDir, "splot-plugin-jar")
                         String typedLuaDir = new File(extractedArchivePath.toString(), "typedlua")
                         File typedLuaFile = new File(typedLuaDir, "tlc")
+                        File plainLuaOutDir = new File(project.buildDir, "intermediates/splot-plain-lua")
                         String userLuaPath = "${project.projectDir}/src/main/lua"
+                        String splotTLPath = "${splotProject.projectDir}/src/main/lua"
+                        String luaPath = "${userLuaPath}/?.lua;${userLuaPath}/?/init.lua;${splotTLPath}/?.lua;${splotTLPath}/?/init.lua;${typedLuaDir}/?.lua;${typedLuaDir}/typedlua/?.lua;;"
 
                         if (!extractedArchivePath.exists()) {
                             extractSelf(extractedArchivePath)
                         }
 
-                        destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
                             String basePath = tlModPatt.matcher(file.absolutePath).replaceAll(/$1/)
-                            String modulePath = basePath.replaceAll("/", "_")
-                            String outFileName = "${modulePath}.lua"
-                            String splotTLPath = "${splotProject.projectDir}/src/main/lua"
-                            String luaPath = "${userLuaPath}/?.lua;${userLuaPath}/?/init.lua;${splotTLPath}/?.lua;${splotTLPath}/?/init.lua;${typedLuaDir}/?.lua;${typedLuaDir}/typedlua/?.lua;;"
-                            String outPath = "${destDir}/splot_lua_${outFileName}"
-                            def compileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", outPath, "${file.getAbsolutePath()}"]
+                            File outPath = new File(plainLuaOutDir, "${basePath}.lua")
+                            outPath.parentFile.mkdirs()
+                            def tlCompileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
 
-                            println compileCommand
-                            Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
-                            compileProcess.in.eachLine { line -> println line }
-                            compileProcess.err.eachLine { line -> println line }
+                            println tlCompileCommand
+                            Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
+                            tlCompileProcess.in.eachLine { line -> println line }
+                            tlCompileProcess.err.eachLine { line -> println line }
+
+                            File modulePath = new File(destDir, basePath)
+                            File bytecodeOutPath = new File("${modulePath}.lua")
+                            bytecodeOutPath.parentFile.mkdirs()
+                            def bcCompileCommand = [ "/usr/local/bin/luajit", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
+                            Process bcCompileProcess = bcCompileCommand.execute()
+                            bcCompileProcess.in.eachLine { line -> println line }
+                            bcCompileProcess.err.eachLine { line -> println line }
                         }
                     }
                 }
