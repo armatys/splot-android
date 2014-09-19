@@ -34,7 +34,9 @@ public class SplotPlugin implements Plugin<Project> {
                 def taskName = "splot${variantName.capitalize()}"
                 project.task(taskName) {
                     ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
-                    ext.destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
+                    ext.destDir = new File(project.buildDir, "intermediates/assets/${variantName}")
+                    inputs.file srcFiles
+                    outputs.dir destDir
 
                     doLast {
                         File extractedArchivePath = new File(project.buildDir, "splot-plugin-jar")

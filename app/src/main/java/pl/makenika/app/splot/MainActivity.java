@@ -2,11 +2,14 @@ package pl.makenika.app.splot;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import org.keplerproject.luajava.LuaState;
-import org.keplerproject.luajava.LuaStateFactory;
+import java.io.IOException;
+
+import pl.makenika.splot.SplotEngine;
 
 public class MainActivity extends ActionBarActivity {
 
@@ -14,7 +17,15 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        LuaState state = LuaStateFactory.newLuaState();
+        SplotEngine splotEngine = new SplotEngine(this);
+        try {
+            Pair<Boolean, String> result = splotEngine.loadLuaModule("appmain");
+            if (Boolean.FALSE == result.first) {
+                Log.d("MainActivity", result.second);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 

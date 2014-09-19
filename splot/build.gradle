@@ -25,8 +25,9 @@ class SplotInternalPlugin implements Plugin<Project> {
                 project.task(taskName) {
                     ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
                     ext.destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
-//                    inputs.file srcFiles
-//                    outputs.dir destDir
+                    inputs.file srcFiles
+                    outputs.dir destDir
+
                     doLast {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->

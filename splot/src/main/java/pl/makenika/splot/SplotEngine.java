@@ -19,7 +19,7 @@ import java.io.InputStream;
  */
 public class SplotEngine {
     private static final String TAG = "Splot";
-    private static final String LUA_ASSETS_DIRECTORY_NAME = "lua";
+//    private static final String LUA_ASSETS_DIRECTORY_NAME = "lua";
 
     private Context mContext;
     private LuaState mLuaState;
@@ -29,10 +29,15 @@ public class SplotEngine {
         mLuaState = newState(context);
     }
 
-    public Pair<Boolean, String> loadLuaFile(String luaFileName) throws IOException {
-        final InputStream is = mContext.getAssets().open(LUA_ASSETS_DIRECTORY_NAME + "/" + luaFileName);
+    public Pair<Boolean, String> loadLuaModule(String luaModuleName) throws IOException {
+        luaModuleName = luaModuleName.replaceAll("\\.", "_");
+        final InputStream is = mContext.getAssets().open("splot_lua_" + luaModuleName + ".lua");
         return loadInputStream(is);
     }
+
+//    public Pair<Boolean, String> loadRawLuaFile(int rawId) throws IOException {
+//        return loadInputStream(mContext.getResources().openRawResource(rawId));
+//    }
 
     public Pair<Boolean, String> loadInputStream(InputStream luaFileInputStream) throws IOException {
         final String code = readWholeString(luaFileInputStream);
@@ -87,29 +92,21 @@ public class SplotEngine {
         @Override public int execute() throws LuaException {
             final Resources resources = mContext.getResources();
             final String originalName = L.toString(-1);
-            final String rawName = "lua_" + originalName.replace(".", "_");
-            final String assetName = originalName.replace(".", "/");
+            final String rawName = "splot_lua_" + originalName.replaceAll("\\.", "_");
             InputStream is;
 
             try {
-                is = mContext.getAssets().open(LUA_ASSETS_DIRECTORY_NAME + "/" + assetName + ".lua");
+                is = mContext.getAssets().open(rawName + ".lua");
             } catch (IOException e) {
                 is = null;
             }
 
             if (is == null) {
                 try {
-                    is = mContext.getAssets().open(LUA_ASSETS_DIRECTORY_NAME + "/" + assetName + "/init.lua");
-                } catch (IOException e) {
-                    is = null;
-                }
-            }
-
-            if (is == null) {
-                try {
-                    final int rawId = R.raw.class.getField("splot_lua_" + rawName).getInt(null);
+                    final int rawId = R.raw.class.getField(rawName).getInt(null);
                     is = resources.openRawResource(rawId);
                 } catch (Exception e) {
+                    is = null;
                 }
             }
 
@@ -123,7 +120,7 @@ public class SplotEngine {
                 }
             }
 
-            L.pushString("\nno file '" + rawName + ".lua' in 'raw' directory");
+            L.pushString("\nno file '" + rawName + "' in 'lua' directory");
             return 1;
         }
     }
