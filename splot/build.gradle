@@ -1,12 +1,8 @@
 import java.util.regex.Pattern
 
 apply plugin: 'com.android.library'
-
 apply plugin: SplotInternalPlugin
 
-//class TypedLuaCompile extends DefaultTask {
-//
-//}
 
 class SplotInternalPlugin implements Plugin<Project> {
     void apply(Project project) {
@@ -16,11 +12,11 @@ class SplotInternalPlugin implements Plugin<Project> {
         }
 
         project.android {
-//            sourceSets {
-//                main.java.srcDir('src/main/lua')
-//            }
+            sourceSets {
+                main.java.srcDir('src/main/lua')
+            }
 
-            def luaSourcesPath = "src/main/res/raw"
+            def luaSourcesPath = "src/main/lua"
             def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
             def variants = plugin.class.name.endsWith('.LibraryPlugin') ? libraryVariants : applicationVariants
             variants.all {
@@ -34,12 +30,16 @@ class SplotInternalPlugin implements Plugin<Project> {
                     doLast {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
-                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/lua_$1.lua/)
+                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
                             def compileCommand = [ "/usr/local/bin/luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
                             println compileCommand
-                            Process compileProcess = compileCommand.execute(["LUA_PATH=typedlua/?.lua;typedlua/typedlua/?.lua;;"], null)
+                            String luaPath = "splot/src/main/lua/?.lua;splot/src/main/lua/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
+                            Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
                             compileProcess.in.eachLine { line -> println line }
                             compileProcess.err.eachLine { line -> println line }
+
+                            def outTypedLuaPath = "${destDir}/splot_tl_${file.name}"
+                            new File(outTypedLuaPath).bytes = new File(file.absolutePath).bytes
                         }
                     }
                 }
@@ -49,28 +49,6 @@ class SplotInternalPlugin implements Plugin<Project> {
         }
     }
 }
-
-//class SplotTask extends DefaultTask {
-//    SplotTask() {
-//
-//        setName("splotTask")
-//        project.tasks.compileReleaseJava.dependsOn(this)
-//        ext.srcFile = file('mountains.xml')
-//        ext.destDir = new File(buildDir, 'generated')
-//        inputs.file srcFile
-//        outputs.dir destDir
-//§
-
-//task('splotTask') << {
-//    println "${project.sourceSets}"
-//    def theFiles = project.files("${project.sourceSets.main.output.resourcesDir}")
-//    println "the files::"
-//    println theFiles
-//}
-//
-//gradle.projectsEvaluated {
-//    compileReleaseJava.dependsOn(splotTask)
-//}
 
 android {
     compileSdkVersion 20
@@ -93,14 +71,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-//    sourceSets {
-//        main {
-//            lua.srcDirs = ['']
-//        }
-//    }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:20.0.0'
+//    compile fileTree(dir: 'libs', include: ['*.jar'])
+//    compile 'com.android.support:appcompat-v7:20.0.0'
 }

@@ -4,17 +4,8 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-import java.nio.file.FileSystems
-import java.nio.file.FileVisitResult
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.attribute.BasicFileAttributes
 import java.security.CodeSource
 import java.util.regex.Pattern
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 
 public class SplotPlugin implements Plugin<Project> {
     void apply(Project project) {
@@ -23,14 +14,21 @@ public class SplotPlugin implements Plugin<Project> {
             throw new GradleException('You must apply the Android plugin or the Android library plugin before using the SplotInternalPlugin plugin.')
         }
 
+        Project parentProject = project.parent
+        Project splotProject = project.parent.subprojects.find { it.name.equals("splot") }
+        if (splotProject == null) {
+            throw new GradleException("You must add the Splot to your project's dependencies.")
+        }
+
         project.android {
             sourceSets {
                 main.java.srcDir('src/main/lua')
             }
 
             def luaSourcesPath = "src/main/lua"
-            def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
+            def tlModPatt = Pattern.compile("^.*${luaSourcesPath}/(.*).tl")
             def variants = plugin.class.name.endsWith('.LibraryPlugin') ? libraryVariants : applicationVariants
+
             variants.all {
                 def variantName = name
                 def taskName = "splot${variantName.capitalize()}"
@@ -39,32 +37,27 @@ public class SplotPlugin implements Plugin<Project> {
                     ext.destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
 
                     doLast {
-                        Path tmpDir = Files.createTempDirectory("splot")
-                        URL typedLuaDirUrl = getClass().getClassLoader().getResource("typedlua")
-                        println("typedLuaDirUrl: ${typedLuaDirUrl}")
-                        println("typedLuaDirUrl URI: ${typedLuaDirUrl.toURI()}")
-                        println("typedLuaDirUrl path: ${typedLuaDirUrl.path}")
-//                        FileSystem fileSystem = FileSystems.newFileSystem(Paths.get(typedLuaDirUrl.path), getClass().getClassLoader())
-                        // TODO extract typedlua dir from the jar into the tmpDir
+                        File extractedArchivePath = new File(project.buildDir, "splot-plugin-jar")
+                        String typedLuaDir = new File(extractedArchivePath.toString(), "typedlua")
+                        File typedLuaFile = new File(typedLuaDir, "tlc")
+                        String userLuaPath = "${project.projectDir}/src/main/lua"
 
-                        Files.walkFileTree(Paths.get(typedLuaDirUrl.path), new SimpleFileVisitor<Path>() {
-                            @Override
-                            FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                                println("visiting file: ${file}")
-                                return FileVisitResult.CONTINUE;
-                            }
-                        })
+                        if (!extractedArchivePath.exists()) {
+                            extractSelf(extractedArchivePath)
+                        }
 
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
-                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/$1.lua/)
-//                            URL typedLuaDirUrl = getClass().getClassLoader().getResource("typedlua")
-//                            File typedLuaDir = new File(typedLuaDirUrl.path)
-                            File typedLuaFile = new File(typedLuaDir, "tlc")
-                            println("TypedLua path: ${typedLuaDir.absolutePath}")
-                            def compileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+                            String basePath = tlModPatt.matcher(file.absolutePath).replaceAll(/$1/)
+                            String modulePath = basePath.replaceAll("/", "_")
+                            String outFileName = "${modulePath}.lua"
+                            String splotTLPath = "${splotProject.projectDir}/src/main/lua"
+                            String luaPath = "${userLuaPath}/?.lua;${userLuaPath}/?/init.lua;${splotTLPath}/?.lua;${splotTLPath}/?/init.lua;${typedLuaDir}/?.lua;${typedLuaDir}/typedlua/?.lua;;"
+                            String outPath = "${destDir}/splot_lua_${outFileName}"
+                            def compileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", outPath, "${file.getAbsolutePath()}"]
+
                             println compileCommand
-                            Process compileProcess = compileCommand.execute(["LUA_PATH=${typedLuaDir}/?.lua;${typedLuaDir}/typedlua/?.lua;;"], null)
+                            Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
                             compileProcess.in.eachLine { line -> println line }
                             compileProcess.err.eachLine { line -> println line }
                         }
@@ -75,27 +68,15 @@ public class SplotPlugin implements Plugin<Project> {
         }
     }
 
-    File extractTypedLuaFiles() {
-        Path tmpDir = Files.createTempDirectory("splot-tl")
-        CodeSource src = MyClass.class.getProtectionDomain().getCodeSource()
-
-        if (src != null) {
-            URL jar = src.getLocation()
-            ZipInputStream zip = new ZipInputStream(jar.openStream())
-            while(true) {
-                ZipEntry e = zip.getNextEntry()
-                if (e == null) {
-                    break
-                }
-                String name = e.getName()
-                if (name.startsWith("typedlua/")) {
-                    // TODO
-                    // Files.copy...
-                    
-                }
+    static void extractSelf(File extractedArchivePath) {
+        CodeSource src = SplotPlugin.class.getProtectionDomain().getCodeSource()
+        AntBuilder ant = new AntBuilder()
+        ant.unzip(src: src.getLocation().path, dest: extractedArchivePath.absolutePath, overwrite: "true") {
+            patternset() {
+                include(name: "typedlua/tlc")
+                include(name: "typedlua/typedlua/**/*.tld")
+                include(name: "typedlua/typedlua/**/*.lua")
             }
-        } else {
-            return null
         }
     }
 }

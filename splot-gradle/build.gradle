@@ -10,16 +10,6 @@ dependencies {
     compile localGroovy()
 }
 
-//task copyTypedLua(type: Copy) {
-//    include 'typedlua/*.lua'
-//    include 'typedlua/*.tld'
-//    include 'tlc'
-//    from "${projectDir}/typedlua"
-//    into "${project.buildDir}/resources/main/"
-//}
-
-//tasks.compileJava.dependsOn('copyTypedLua')
-
 processResources {
     from(parent.projectDir) {
         include 'typedlua/typedlua/*.lua'
