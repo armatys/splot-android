@@ -55,20 +55,31 @@ public class SplotPlugin implements Plugin<Project> {
                             String basePath = tlModPatt.matcher(file.absolutePath).replaceAll(/$1/)
                             File outPath = new File(plainLuaOutDir, "${basePath}.lua")
                             outPath.parentFile.mkdirs()
-                            def tlCompileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
 
+                            File modulePath = new File(destDir, basePath)
+                            File bytecodeOutPath = new File("${modulePath}.lua")
+                            bytecodeOutPath.parentFile.mkdirs()
+
+                            def tlCompileCommand = [ "/usr/local/bin/luajit-2.1.0-alpha", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
                             println tlCompileCommand
                             Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
                             tlCompileProcess.in.eachLine { line -> println line }
                             tlCompileProcess.err.eachLine { line -> println line }
 
-                            File modulePath = new File(destDir, basePath)
-                            File bytecodeOutPath = new File("${modulePath}.lua")
-                            bytecodeOutPath.parentFile.mkdirs()
-                            def bcCompileCommand = [ "/usr/local/bin/luajit", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
-                            Process bcCompileProcess = bcCompileCommand.execute()
-                            bcCompileProcess.in.eachLine { line -> println line }
-                            bcCompileProcess.err.eachLine { line -> println line }
+                            // Temporarily disable bytecode compilation, as it results in "malformed bytecode" error;
+                            // Simply copy the plain lua files instead.
+
+                            def copyCommand = [ "cp", outPath.absolutePath, bytecodeOutPath.absolutePath ]
+                            println copyCommand
+                            Process copyProcess = copyCommand.execute()
+                            copyProcess.in.eachLine { line -> println ln }
+                            copyProcess.err.eachLine { line -> println ln }
+
+//                            def bcCompileCommand = [ "/usr/local/bin/luajit-2.1.0-alpha", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
+//                            println bcCompileCommand
+//                            Process bcCompileProcess = bcCompileCommand.execute()
+//                            bcCompileProcess.in.eachLine { line -> println line }
+//                            bcCompileProcess.err.eachLine { line -> println line }
                         }
                     }
                 }
