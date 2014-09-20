@@ -19,7 +19,6 @@ import java.io.InputStream;
  */
 public class SplotEngine {
     private static final String TAG = "Splot";
-//    private static final String LUA_ASSETS_DIRECTORY_NAME = "lua";
 
     private Context mContext;
     private LuaState mLuaState;
@@ -34,10 +33,6 @@ public class SplotEngine {
         final InputStream is = mContext.getAssets().open("splot_lua/" + luaModuleName + ".lua");
         return loadInputStream(is);
     }
-
-//    public Pair<Boolean, String> loadRawLuaFile(int rawId) throws IOException {
-//        return loadInputStream(mContext.getResources().openRawResource(rawId));
-//    }
 
     public Pair<Boolean, String> loadInputStream(InputStream luaFileInputStream) throws IOException {
         final String code = readWholeString(luaFileInputStream);
@@ -76,7 +71,7 @@ public class SplotEngine {
                     builder.append("\t");
                 }
             }
-            Log.d("Satellite", builder.toString());
+            Log.d("Splot", builder.toString());
             return 0;
         }
     }
