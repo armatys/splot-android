@@ -14,7 +14,6 @@ public class SplotPlugin implements Plugin<Project> {
             throw new GradleException('You must apply the Android plugin or the Android library plugin before using the SplotInternalPlugin plugin.')
         }
 
-        Project parentProject = project.parent
         Project splotProject = project.parent.subprojects.find { it.name.equals("splot") }
         if (splotProject == null) {
             throw new GradleException("You must add the Splot to your project's dependencies.")
@@ -34,7 +33,7 @@ public class SplotPlugin implements Plugin<Project> {
                 def taskName = "splot${variantName.capitalize()}"
                 project.task(taskName) {
                     ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
-                    ext.destDir = new File(project.buildDir, "intermediates/assets/${variantName}/splot_lua")
+                    def destDir = new File(project.buildDir, "intermediates/assets/${variantName}/splot_lua")
                     inputs.file srcFiles
                     outputs.dir destDir
 
@@ -60,26 +59,17 @@ public class SplotPlugin implements Plugin<Project> {
                             File bytecodeOutPath = new File("${modulePath}.lua")
                             bytecodeOutPath.parentFile.mkdirs()
 
-                            def tlCompileCommand = [ "/usr/local/bin/luajit-2.1.0-alpha", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
+                            def tlCompileCommand = [ "/usr/local/bin/luajit", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
                             println tlCompileCommand
                             Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
                             tlCompileProcess.in.eachLine { line -> println line }
                             tlCompileProcess.err.eachLine { line -> println line }
 
-                            // Temporarily disable bytecode compilation, as it results in "malformed bytecode" error;
-                            // Simply copy the plain lua files instead.
-
-                            def copyCommand = [ "cp", outPath.absolutePath, bytecodeOutPath.absolutePath ]
-                            println copyCommand
-                            Process copyProcess = copyCommand.execute()
-                            copyProcess.in.eachLine { line -> println ln }
-                            copyProcess.err.eachLine { line -> println ln }
-
-//                            def bcCompileCommand = [ "/usr/local/bin/luajit-2.1.0-alpha", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
-//                            println bcCompileCommand
-//                            Process bcCompileProcess = bcCompileCommand.execute()
-//                            bcCompileProcess.in.eachLine { line -> println line }
-//                            bcCompileProcess.err.eachLine { line -> println line }
+                            def bcCompileCommand = [ "/usr/local/bin/luajit", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
+                            println bcCompileCommand
+                            Process bcCompileProcess = bcCompileCommand.execute()
+                            bcCompileProcess.in.eachLine { line -> println line }
+                            bcCompileProcess.err.eachLine { line -> println line }
                         }
                     }
                 }

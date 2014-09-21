@@ -31,16 +31,24 @@ public class SplotEngine {
     public Pair<Boolean, String> loadLuaModule(String luaModuleName) throws IOException {
         luaModuleName = luaModuleName.replaceAll("\\.", "/");
         final InputStream is = mContext.getAssets().open("splot_lua/" + luaModuleName + ".lua");
-        return loadInputStream(is);
+        return loadInputStream(luaModuleName, is);
     }
 
-    public Pair<Boolean, String> loadInputStream(InputStream luaFileInputStream) throws IOException {
-        final String code = readWholeString(luaFileInputStream);
-        final int ret = mLuaState.LdoString(code);
-        if (ret == 1) {
-            final String err = mLuaState.toString(-1);
-            return new Pair<Boolean, String>(Boolean.FALSE, err);
+    public Pair<Boolean, String> loadInputStream(String luaModuleName, InputStream luaFileInputStream) throws IOException {
+        byte[] bytes = readAllBytes(luaFileInputStream);
+        final int loadResult = mLuaState.LloadBuffer(bytes, luaModuleName);
+
+        if (loadResult != 0) {
+            final String errMsg = mLuaState.toString(-1);
+            return new Pair<Boolean, String>(Boolean.FALSE, errMsg);
         }
+
+        final int pcallResult = mLuaState.pcall(0, LuaState.LUA_MULTRET, 0);
+        if (pcallResult != 0) {
+            final String errMsg = mLuaState.toString(-1);
+            return new Pair<Boolean, String>(Boolean.FALSE, errMsg);
+        }
+
         return new Pair<Boolean, String>(Boolean.TRUE, "");
     }
 
@@ -170,8 +178,8 @@ public class SplotEngine {
     private static byte[] readAllBytes(InputStream inputStream) throws IOException {
         return readAll(inputStream).toByteArray();
     }
-
-    private static String readWholeString(InputStream inputStream) throws IOException {
-        return readAll(inputStream).toString("UTF-8");
-    }
+//
+//    private static String readWholeString(InputStream inputStream) throws IOException {
+//        return readAll(inputStream).toString();
+//    }
 }

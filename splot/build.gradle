@@ -32,7 +32,7 @@ class SplotInternalPlugin implements Plugin<Project> {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
                             def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
-                            def compileCommand = [ "/usr/local/bin/luajit-2.1.0-alpha", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+                            def compileCommand = [ "/usr/local/bin/luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
                             println compileCommand
                             String luaPath = "splot/src/main/lua/?.lua;splot/src/main/lua/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
                             Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
