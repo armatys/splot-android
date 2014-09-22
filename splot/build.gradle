@@ -5,8 +5,8 @@ apply plugin: SplotInternalPlugin
 
 
 class SplotInternalPlugin implements Plugin<Project> {
-    final def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
-    final def luaSourcesPath = "src/main/lua"
+    static final tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
+    static final luaSourcesPath = "src/main/lua"
 
     void apply(Project project) {
         def plugin = project.plugins.findPlugin('android')?:project.plugins.findPlugin('android-library')

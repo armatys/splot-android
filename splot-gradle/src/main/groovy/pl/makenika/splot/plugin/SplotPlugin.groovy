@@ -8,6 +8,10 @@ import java.security.CodeSource
 import java.util.regex.Pattern
 
 public class SplotPlugin implements Plugin<Project> {
+    static final LUA_MAJOR_VERSION = 2
+    static final LUA_MINOR_VERSION = 0
+    static final luaVersionPatt = Pattern.compile("^LuaJIT (\\d+)\\.(\\d+)\\.(\\d+).*")
+
     void apply(Project project) {
         def plugin = project.plugins.findPlugin('android')?:project.plugins.findPlugin('android-library')
         if (!plugin) {
@@ -43,12 +47,34 @@ public class SplotPlugin implements Plugin<Project> {
                     outputs.dir destDir
 
                     doLast {
+                        if (!checkLuaVersion((String)project.splot.luajitPath)) {
+                            throw new GradleException("Invalid LuaJIT version. ${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.x is required.")
+                        }
                         compileLuaFiles(splotProject, project, destDir, (String)project.splot.luajitPath, srcFiles, tlModPatt)
                     }
                 }
                 preBuild.dependsOn(taskName)
             }
         }
+    }
+
+    static boolean checkLuaVersion(String luajitPath) {
+        Process proc = "${luajitPath} -v".execute()
+        proc.waitFor()
+        String versionLine = proc.text
+        def matcher = luaVersionPatt.matcher(versionLine)
+        if (!matcher) {
+            return false
+        }
+        def majorVerStr = matcher.group(1)
+        def minorVerStr = matcher.group(2)
+        if (!majorVerStr.toInteger().equals(LUA_MAJOR_VERSION)) {
+            return false
+        }
+        if (!minorVerStr.toInteger().equals(LUA_MINOR_VERSION)) {
+            return false
+        }
+        return true
     }
 
     static void compileLuaFiles(Project splotProject, Project project, File destDir, String luajitPath, def srcFiles, Pattern tlModPatt) {
