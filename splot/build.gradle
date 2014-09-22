@@ -5,52 +5,62 @@ apply plugin: SplotInternalPlugin
 
 
 class SplotInternalPlugin implements Plugin<Project> {
+    final def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
+    final def luaSourcesPath = "src/main/lua"
+
     void apply(Project project) {
         def plugin = project.plugins.findPlugin('android')?:project.plugins.findPlugin('android-library')
         if (!plugin) {
             throw new GradleException('You must apply the Android plugin or the Android library plugin before using the SplotInternalPlugin plugin.')
         }
 
+        // Note: the SplotPlugin adds a "splot" extension to the project
+        // so we can use the same extension variables as in SplotPluginExtension
+
         project.android {
             sourceSets {
-                main.java.srcDir('src/main/lua')
+                main.java.srcDir(luaSourcesPath)
             }
 
-            def luaSourcesPath = "src/main/lua"
-            def tlExtPatt = Pattern.compile("(.*)(\\.tl)\$")
             def variants = plugin.class.name.endsWith('.LibraryPlugin') ? libraryVariants : applicationVariants
             variants.all {
                 def variantName = name
-                def taskName = "compile${variantName.capitalize()}TypedLua"
+                def destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
+                def taskName = "splotInternal${variantName.capitalize()}"
+
                 project.task(taskName) {
-                    ext.srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
-                    ext.destDir = new File(project.buildDir, "generated/res/generated/${variantName}/raw")
+                    def srcFiles = project.fileTree(luaSourcesPath).include('**/*.tl')
+
                     inputs.file srcFiles
                     outputs.dir destDir
 
                     doLast {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
-                            def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
-                            def compileCommand = [ "/usr/local/bin/luajit", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
-                            println compileCommand
-                            String luaPath = "splot/src/main/lua/?.lua;splot/src/main/lua/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
-                            Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
-                            compileProcess.in.eachLine { line -> println line }
-                            compileProcess.err.eachLine { line -> println line }
-
-                            def outTypedLuaPath = "${destDir}/splot_tl_${file.name}"
-                            new File(file.absolutePath).withInputStream { InputStream is ->
-                                new File(outTypedLuaPath).withOutputStream { OutputStream os ->
-                                    def bs = new BufferedOutputStream(os)
-                                    bs << is
-                                }
-                            }
+                            compileTypedLuaFile(file, destDir, (String)project.splot.luajitPath)
                         }
                     }
                 }
 
-                javaCompile.dependsOn(taskName)
+                preBuild.dependsOn(taskName)
+            }
+        }
+    }
+
+    void compileTypedLuaFile(File file, File destDir, String luajitPath) {
+        def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
+        def compileCommand = [ "${luajitPath}", "typedlua/tlc", "-s", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+        println compileCommand
+        String luaPath = "splot/${luaSourcesPath}/?.lua;splot/${luaSourcesPath}/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
+        Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
+        compileProcess.in.eachLine { line -> println line }
+        compileProcess.err.eachLine { line -> println line }
+
+        def outTypedLuaPath = "${destDir}/splot_tl_${file.name}"
+        new File(file.absolutePath).withInputStream { InputStream is ->
+            new File(outTypedLuaPath).withOutputStream { OutputStream os ->
+                def bs = new BufferedOutputStream(os)
+                bs << is
             }
         }
     }

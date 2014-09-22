@@ -11,6 +11,8 @@ buildscript {
 
 apply plugin: "splot"
 
+splot.luajitPath = "/usr/local/bin/luajit"
+
 android {
     compileSdkVersion 20
     buildToolsVersion "20.0.0"
