@@ -99,7 +99,7 @@ public class SplotPlugin implements Plugin<Project> {
             File bytecodeOutPath = new File("${modulePath}.lua")
             bytecodeOutPath.parentFile.mkdirs()
 
-            def tlCompileCommand = [ "${luajitPath}", typedLuaFile.absolutePath, "-s", "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
+            def tlCompileCommand = [ "${luajitPath}", typedLuaFile.absolutePath, "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
             println tlCompileCommand
             Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
             tlCompileProcess.in.eachLine { line -> println line }
