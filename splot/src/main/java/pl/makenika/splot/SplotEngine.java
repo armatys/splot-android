@@ -14,6 +14,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import java.util.ArrayDeque;
+
 /** Splot engine.
  * Created by mako on 09.09.2014.
  */
@@ -22,10 +24,30 @@ public class SplotEngine {
 
     private Context mContext;
     private LuaState mLuaState;
+    private ArrayDeque<Integer> mStackIndexes;
 
     public SplotEngine(Context context) {
         mContext = context;
         mLuaState = newState(context);
+        mStackIndexes = new ArrayDeque<Integer>();
+    }
+
+    public LuaState getLuaState() {
+        return mLuaState;
+    }
+
+    public void saveStack() {
+        final int n = mLuaState.getTop();
+        mStackIndexes.addLast(n);
+    }
+
+    public void restoreStack() {
+        final Integer n = mStackIndexes.pollLast();
+        if (n != null) {
+            mLuaState.setTop(n);
+        } else {
+            throw new RuntimeException("Unbalanced call to restore the Lua stack.");
+        }
     }
 
     public Pair<Boolean, String> loadLuaModule(String luaModuleName) throws IOException {

@@ -201,6 +201,14 @@ JNIEXPORT jstring JNICALL Java_org_keplerproject_luajava_LuaState__1toString
 
 /*
  * Class:     org_keplerproject_luajava_LuaState
+ * Method:    _toByteArray
+ * Signature: (Lorg/keplerproject/luajava/CPtr;I)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_keplerproject_luajava_LuaState__1toByteArray
+  (JNIEnv *, jobject, jobject, jint);
+
+/*
+ * Class:     org_keplerproject_luajava_LuaState
  * Method:    _objlen
  * Signature: (Lorg/keplerproject/luajava/CPtr;I)I
  */

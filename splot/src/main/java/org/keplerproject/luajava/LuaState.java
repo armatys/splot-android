@@ -173,6 +173,7 @@ public class LuaState
   private synchronized native int    _toInteger(CPtr ptr, int idx);
   private synchronized native int    _toBoolean(CPtr ptr, int idx);
   private synchronized native String _toString(CPtr ptr, int idx);
+  private synchronized native byte[] _toByteArray(CPtr ptr, int idx);
   private synchronized native int    _objlen(CPtr ptr, int idx);
   private synchronized native CPtr   _toThread(CPtr ptr, int idx);
 
@@ -444,6 +445,11 @@ public class LuaState
   public String toString(int idx)
   {
     return _toString(luaState, idx);
+  }
+
+  public byte[] toByteArray(int idx)
+  {
+    return _toByteArray(luaState, idx);
   }
   
   public int strLen(int idx)

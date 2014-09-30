@@ -2843,6 +2843,25 @@ JNIEXPORT jstring JNICALL Java_org_keplerproject_luajava_LuaState__1toString
    return ( *env )->NewStringUTF( env , str );
 }
 
+/************************************************************************
+*   JNI Called function
+*      Lua Exported Function
+************************************************************************/
+
+JNIEXPORT jbyteArray JNICALL Java_org_keplerproject_luajava_LuaState__1toByteArray
+  (JNIEnv * env , jobject jobj , jobject cptr , jint idx)
+{
+   lua_State * L = getStateFromCPtr( env , cptr );
+
+   size_t len = 0;
+   const char * str = lua_tolstring( L , idx , &len );
+
+   jbyteArray arr = ( *env )->NewByteArray( env , len );
+   int i;
+   ( *env )->SetByteArrayRegion( env , arr, 0, len , (jbyte*) str );
+   return arr;
+}
+
 
 /************************************************************************
 *   JNI Called function
