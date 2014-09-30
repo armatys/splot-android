@@ -13,8 +13,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import pl.makenika.splot.LuaTable;
 import pl.makenika.splot.SplotEngine;
-public class Test {
+public  class Test implements LuaTable {
     private SplotEngine mEngine;
     private String mLuaModuleName;
     private int mLuaTableRef;
@@ -27,6 +28,12 @@ public class Test {
         }
         mLuaTableRef = mEngine.getLuaState().Lref(LuaState.LUA_GLOBALSINDEX);
         mLuaModuleName = "test";
+    }
+    public SplotEngine getEngine() {
+        return mEngine;
+    }
+    public int getLuaTableRef() {
+        return mLuaTableRef;
     }
     protected void finalize() throws Throwable {
         super.finalize();
@@ -110,11 +117,16 @@ public class Test {
         L.setTable(-3);
         mEngine.restoreStack();
     }
-    public class PTcomplexFn1 {
+    public static class PTcomplexFn1 implements LuaTable {
         private int mLuaTableRef;
-        public PTcomplexFn1(boolean useTopTable) {
+        private SplotEngine mEngine;
+        public PTcomplexFn1(SplotEngine engine, boolean useTopTable) {
+            mEngine = engine;
             if (!useTopTable) { mEngine.getLuaState().createTable(0, 0); }
             mLuaTableRef = mEngine.getLuaState().Lref(LuaState.LUA_GLOBALSINDEX);
+        }
+        public SplotEngine getEngine() {
+            return mEngine;
         }
         public int getLuaTableRef() {
             return mLuaTableRef;
@@ -143,11 +155,16 @@ public class Test {
             mEngine.restoreStack();
         }
     }
-    public class RTcomplexFn1 implements Map<Double, byte[]> {
+    public static class RTcomplexFn1 implements LuaTable, Map<Double, byte[]> {
         private int mLuaTableRef;
-        public RTcomplexFn1(boolean useTopTable) {
+        private SplotEngine mEngine;
+        public RTcomplexFn1(SplotEngine engine, boolean useTopTable) {
+            mEngine = engine;
             if (!useTopTable) { mEngine.getLuaState().createTable(0, 0); }
             mLuaTableRef = mEngine.getLuaState().Lref(LuaState.LUA_GLOBALSINDEX);
+        }
+        public SplotEngine getEngine() {
+            return mEngine;
         }
         public int getLuaTableRef() {
             return mLuaTableRef;
@@ -300,7 +317,7 @@ public class Test {
         L.rawGetI(LuaState.LUA_GLOBALSINDEX, param1.getLuaTableRef());
         L.call(1, 1);
         L.pushValue(-1);
-        RTcomplexFn1 ret1 = new RTcomplexFn1(true);
+        RTcomplexFn1 ret1 = new RTcomplexFn1(mEngine, true);
         mEngine.restoreStack();
         return ret1;
     }
@@ -363,11 +380,16 @@ public class Test {
         L.setTable(-3);
         mEngine.restoreStack();
     }
-    public class Tarr {
+    public static class Tarr implements LuaTable {
         private int mLuaTableRef;
-        public Tarr(boolean useTopTable) {
+        private SplotEngine mEngine;
+        public Tarr(SplotEngine engine, boolean useTopTable) {
+            mEngine = engine;
             if (!useTopTable) { mEngine.getLuaState().createTable(0, 0); }
             mLuaTableRef = mEngine.getLuaState().Lref(LuaState.LUA_GLOBALSINDEX);
+        }
+        public SplotEngine getEngine() {
+            return mEngine;
         }
         public int getLuaTableRef() {
             return mLuaTableRef;
@@ -423,7 +445,7 @@ public class Test {
         L.rawGetI(LuaState.LUA_GLOBALSINDEX, mLuaTableRef);
         L.pushString("arr");
         L.getTable(-2);
-        Tarr t = new Tarr(true);
+        Tarr t = new Tarr(mEngine, true);
         mEngine.restoreStack();
         return t;
     }
@@ -436,11 +458,16 @@ public class Test {
         L.setTable(-3);
         mEngine.restoreStack();
     }
-    public class Tinterf {
+    public static class Tinterf implements LuaTable {
         private int mLuaTableRef;
-        public Tinterf(boolean useTopTable) {
+        private SplotEngine mEngine;
+        public Tinterf(SplotEngine engine, boolean useTopTable) {
+            mEngine = engine;
             if (!useTopTable) { mEngine.getLuaState().createTable(0, 0); }
             mLuaTableRef = mEngine.getLuaState().Lref(LuaState.LUA_GLOBALSINDEX);
+        }
+        public SplotEngine getEngine() {
+            return mEngine;
         }
         public int getLuaTableRef() {
             return mLuaTableRef;
@@ -479,7 +506,7 @@ public class Test {
             mEngine.restoreStack();
             return null;
         }
-        Tinterf t = new Tinterf(true);
+        Tinterf t = new Tinterf(mEngine, true);
         mEngine.restoreStack();
         return t;
     }

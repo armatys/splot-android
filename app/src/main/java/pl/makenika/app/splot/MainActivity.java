@@ -35,7 +35,7 @@ public class MainActivity extends ActionBarActivity {
 
         test.callme();
 
-        final Test.PTcomplexFn1 pTcomplexFn1 = test.new PTcomplexFn1(false);
+        final Test.PTcomplexFn1 pTcomplexFn1 = new Test.PTcomplexFn1(test.getEngine(), false);
         pTcomplexFn1.setVal(25.0);
         final Test.RTcomplexFn1 rTcomplexFn1 = test.complexFn(pTcomplexFn1);
         rTcomplexFn1.clear();
