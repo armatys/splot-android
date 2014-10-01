@@ -126,6 +126,10 @@ public class SplotPlugin implements Plugin<Project> {
         Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
         tlCompileProcess.in.eachLine { line -> println line }
         tlCompileProcess.err.eachLine { line -> println line }
+        tlCompileProcess.waitFor()
+        if (tlCompileProcess.exitValue() != 0) {
+            throw new GradleException("Could not compile Typed Lua file ${typedLuaFile}.")
+        }
     }
 
     static void compileToBytecode(String luajitPath, File plainLuaFile, File bytecodeOutPath) {
@@ -134,6 +138,10 @@ public class SplotPlugin implements Plugin<Project> {
         Process bcCompileProcess = bcCompileCommand.execute()
         bcCompileProcess.in.eachLine { line -> println line }
         bcCompileProcess.err.eachLine { line -> println line }
+        bcCompileProcess.waitFor()
+        if (bcCompileProcess.exitValue() != 0) {
+            throw new GradleException("Could not compile Lua file ${plainLuaFile} to byte-code.")
+        }
     }
 
     static void generateJavaCode(String luajitPath, String luaPath, File generator, File typedLuaFile, File javaOutputFile, String moduleName) {
@@ -142,6 +150,10 @@ public class SplotPlugin implements Plugin<Project> {
         Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
         tlCompileProcess.in.eachLine { line -> println line }
         tlCompileProcess.err.eachLine { line -> println line }
+        tlCompileProcess.waitFor()
+        if (tlCompileProcess.exitValue() != 0) {
+            throw new GradleException("Could not generate Java file for ${typedLuaFile}.")
+        }
     }
 
     static void extractSelf(File extractedArchivePath) {

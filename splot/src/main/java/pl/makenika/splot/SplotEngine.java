@@ -101,7 +101,7 @@ public class SplotEngine {
                     builder.append("\t");
                 }
             }
-            Log.d("Splot", builder.toString());
+            Log.d(TAG, builder.toString());
             return 0;
         }
     }
@@ -122,9 +122,17 @@ public class SplotEngine {
             InputStream is;
 
             try {
-                is = mContext.getAssets().open("splot_lua/" + assetName + ".lua");
+                is = mContext.getAssets().open("splot_lua/" + assetName + "/init.lua");
             } catch (IOException e) {
                 is = null;
+            }
+
+            if (is == null) {
+                try {
+                    is = mContext.getAssets().open("splot_lua/" + assetName + ".lua");
+                } catch (IOException e) {
+                    is = null;
+                }
             }
 
             if (is == null) {
