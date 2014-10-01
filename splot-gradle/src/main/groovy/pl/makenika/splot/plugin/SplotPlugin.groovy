@@ -27,15 +27,17 @@ public class SplotPlugin implements Plugin<Project> {
         splotProject.extensions.add("splot", project.extensions.getByName("splot"))
 
         project.android {
+            def javaBuildDir = new File(project.buildDir, "generated/source/splot-gen");
+            def javaDestDir = new File(javaBuildDir, "splot");
             sourceSets {
-                main.java.srcDir(project.splot.luaSourcesPath)
+                main.java.srcDirs project.splot.luaSourcesPath, javaBuildDir
             }
 
             def variants = plugin.class.name.endsWith('.LibraryPlugin') ? libraryVariants : applicationVariants
 
             variants.all {
                 def variantName = name
-                def destDir = new File(project.buildDir, "intermediates/assets/${variantName}/splot_lua")
+                def luaDestDir = new File(project.buildDir, "intermediates/assets/${variantName}/splot_lua")
                 def taskName = "splot${variantName.capitalize()}"
 
                 project.task(taskName) {
@@ -44,13 +46,12 @@ public class SplotPlugin implements Plugin<Project> {
                     def srcFiles = project.fileTree(luaSources).include('**/*.tl')
 
                     inputs.file srcFiles
-                    outputs.dir destDir
+                    outputs.dir luaDestDir
+                    outputs.dir javaDestDir
 
                     doLast {
-                        if (!checkLuaVersion((String)project.splot.luajitPath)) {
-                            throw new GradleException("Invalid LuaJIT version. ${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.x is required.")
-                        }
-                        compileLuaFiles(splotProject, project, destDir, (String)project.splot.luajitPath, srcFiles, tlModPatt)
+                        checkLuaDependencies((String)project.splot.luajitPath)
+                        compileLuaFiles(splotProject, project, luaDestDir, javaDestDir, (String)project.splot.luajitPath, srcFiles, tlModPatt)
                     }
                 }
                 preBuild.dependsOn(taskName)
@@ -58,33 +59,42 @@ public class SplotPlugin implements Plugin<Project> {
         }
     }
 
-    static boolean checkLuaVersion(String luajitPath) {
+    static boolean checkLuaDependencies(String luajitPath) {
         Process proc = "${luajitPath} -v".execute()
         proc.waitFor()
         String versionLine = proc.text
         def matcher = luaVersionPatt.matcher(versionLine)
         if (!matcher) {
-            return false
+            throw new GradleException("LuaJIT missing or version invalid. ${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.x is required.")
         }
         def majorVerStr = matcher.group(1)
         def minorVerStr = matcher.group(2)
+        def patchVerStr = matcher.group(3)
         if (!majorVerStr.toInteger().equals(LUA_MAJOR_VERSION)) {
-            return false
+            throw new GradleException("LuaJIT version ${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.x is required (you have ${majorVerStr}.${minorVerStr}.${patchVerStr}).")
         }
         if (!minorVerStr.toInteger().equals(LUA_MINOR_VERSION)) {
-            return false
+            throw new GradleException("LuaJIT version ${LUA_MAJOR_VERSION}.${LUA_MINOR_VERSION}.x is required (you have ${majorVerStr}.${minorVerStr}.${patchVerStr}).")
         }
-        return true
+
+        Process requireProc = ["${luajitPath}", "-e", "require 'lpeg'"].execute()
+        requireProc.waitFor()
+        if (requireProc.exitValue() != 0) {
+            throw new GradleException("Could not find the LPeg library. Make sure it's accessible from your LuaJIT installation.")
+        }
     }
 
-    static void compileLuaFiles(Project splotProject, Project project, File destDir, String luajitPath, def srcFiles, Pattern tlModPatt) {
+    static void compileLuaFiles(Project splotProject, Project project, File luaDestDir, File javaDestDir, String luajitPath, def srcFiles, Pattern tlModPatt) {
         File extractedArchivePath = new File(project.buildDir, "splot-plugin-jar")
         String typedLuaDir = new File(extractedArchivePath.toString(), "typedlua")
+        String splotGenDir = new File(extractedArchivePath.toString(), "splot-code-gen")
         File typedLuaFile = new File(typedLuaDir, "tlc")
         File plainLuaOutDir = new File(project.buildDir, "intermediates/splot-plain-lua")
         String userLuaPath = "${project.projectDir}/${project.splot.luaSourcesPath}"
         String splotTLPath = "${splotProject.projectDir}/${project.splot.luaSourcesPath}"
         String luaPath = "${userLuaPath}/?.lua;${userLuaPath}/?/init.lua;${splotTLPath}/?.lua;${splotTLPath}/?/init.lua;${typedLuaDir}/?.lua;${typedLuaDir}/typedlua/?.lua;;"
+        String splotGenLuaPath = "${splotGenDir}/src/?.lua;${splotGenDir}/src/?/init.lua;${luaPath}"
+        File generatorFile = new File(splotGenDir, "src/main.lua")
 
         if (!extractedArchivePath.exists()) {
             extractSelf(extractedArchivePath)
@@ -92,25 +102,46 @@ public class SplotPlugin implements Plugin<Project> {
 
         srcFiles.getFiles().each { File file ->
             String basePath = tlModPatt.matcher(file.absolutePath).replaceAll(/$1/)
-            File outPath = new File(plainLuaOutDir, "${basePath}.lua")
-            outPath.parentFile.mkdirs()
+            File plainLuaOutPath = new File(plainLuaOutDir, "${basePath}.lua")
+            plainLuaOutPath.parentFile.mkdirs()
+            compileToPlainLua(luajitPath, luaPath, typedLuaFile, file, plainLuaOutPath)
 
-            File modulePath = new File(destDir, basePath)
-            File bytecodeOutPath = new File("${modulePath}.lua")
-            bytecodeOutPath.parentFile.mkdirs()
+            File modulePath = new File(luaDestDir, basePath)
+            File byteCodeOutPath = new File("${modulePath}.lua")
+            byteCodeOutPath.parentFile.mkdirs()
+            compileToBytecode(luajitPath, plainLuaOutPath, byteCodeOutPath)
 
-            def tlCompileCommand = [ "${luajitPath}", typedLuaFile.absolutePath, "-o", outPath.absolutePath, "${file.getAbsolutePath()}"]
-            println tlCompileCommand
-            Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
-            tlCompileProcess.in.eachLine { line -> println line }
-            tlCompileProcess.err.eachLine { line -> println line }
-
-            def bcCompileCommand = [ "${luajitPath}", "-b", "-t", "raw", outPath.absolutePath, bytecodeOutPath.absolutePath]
-            println bcCompileCommand
-            Process bcCompileProcess = bcCompileCommand.execute()
-            bcCompileProcess.in.eachLine { line -> println line }
-            bcCompileProcess.err.eachLine { line -> println line }
+            String moduleName = file.name.replaceAll("(.*)(\\.tl)\$", "\$1")
+            if (moduleName.contentEquals(basePath)) {
+                File javaOutFile = new File(javaDestDir, "${moduleName.capitalize()}.java")
+                javaOutFile.parentFile.mkdirs()
+                generateJavaCode(luajitPath, splotGenLuaPath, generatorFile, file, javaOutFile, moduleName)
+            }
         }
+    }
+
+    static void compileToPlainLua(String luajitPath, String luaPath, File tlcFile, File typedLuaFile, File outPath) {
+        def tlCompileCommand = [ "${luajitPath}", tlcFile.absolutePath, "-o", outPath.absolutePath, "${typedLuaFile.getAbsolutePath()}"]
+        println tlCompileCommand
+        Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
+        tlCompileProcess.in.eachLine { line -> println line }
+        tlCompileProcess.err.eachLine { line -> println line }
+    }
+
+    static void compileToBytecode(String luajitPath, File plainLuaFile, File bytecodeOutPath) {
+        def bcCompileCommand = [ "${luajitPath}", "-b", "-t", "raw", plainLuaFile.absolutePath, bytecodeOutPath.absolutePath]
+        println bcCompileCommand
+        Process bcCompileProcess = bcCompileCommand.execute()
+        bcCompileProcess.in.eachLine { line -> println line }
+        bcCompileProcess.err.eachLine { line -> println line }
+    }
+
+    static void generateJavaCode(String luajitPath, String luaPath, File generator, File typedLuaFile, File javaOutputFile, String moduleName) {
+        def tlCompileCommand = [ "${luajitPath}", generator.absolutePath, "${typedLuaFile.getAbsolutePath()}", moduleName, javaOutputFile.absolutePath]
+        println tlCompileCommand
+        Process tlCompileProcess = tlCompileCommand.execute(["LUA_PATH=${luaPath}"], null)
+        tlCompileProcess.in.eachLine { line -> println line }
+        tlCompileProcess.err.eachLine { line -> println line }
     }
 
     static void extractSelf(File extractedArchivePath) {
@@ -121,6 +152,7 @@ public class SplotPlugin implements Plugin<Project> {
                 include(name: "typedlua/tlc")
                 include(name: "typedlua/typedlua/**/*.tld")
                 include(name: "typedlua/typedlua/**/*.lua")
+                include(name: "splot-code-gen/src/*.lua")
             }
         }
     }

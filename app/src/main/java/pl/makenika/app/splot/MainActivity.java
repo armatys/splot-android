@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.Map;
 
 import pl.makenika.splot.SplotEngine;
+import splot.Appmain;
+import splot.Test;
 
 public class MainActivity extends ActionBarActivity {
     private static final String TAG = "MainActivity";
@@ -19,15 +21,9 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        SplotEngine splotEngine = new SplotEngine(this);
-        try {
-            Pair<Boolean, String> result = splotEngine.loadLuaModule("appmain");
-            if (Boolean.FALSE == result.first) {
-                Log.d("MainActivity", result.second);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        Appmain appmain = new Appmain(this);
+        Log.d(TAG, "appmain: " + new String(appmain.getAppname()));
 
         Test test = new Test(this);
         final Pair<Double, byte[]> calc = test.calculate(22.0);

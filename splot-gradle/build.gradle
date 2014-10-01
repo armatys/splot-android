@@ -15,6 +15,7 @@ processResources {
         include 'typedlua/typedlua/*.lua'
         include 'typedlua/typedlua/*.tld'
         include 'typedlua/tlc'
+        include 'splot-code-gen/src/*.lua'
     }
 }
 

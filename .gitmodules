@@ -7,3 +7,6 @@
 [submodule "typedlua"]
 	path = typedlua
 	url = https://source.makenika.pl/mako/typedlua.git
+[submodule "splot-code-gen"]
+	path = splot-code-gen
+	url = https://source.makenika.pl/mako/splot-code-gen.git

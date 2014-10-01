@@ -47,7 +47,7 @@ class SplotInternalPlugin implements Plugin<Project> {
         }
     }
 
-    void compileTypedLuaFile(File file, File destDir, String luajitPath) {
+    static void compileTypedLuaFile(File file, File destDir, String luajitPath) {
         def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
         def compileCommand = [ "${luajitPath}", "typedlua/tlc", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
         println compileCommand

@@ -1,4 +1,4 @@
--- local splot = require 'splot'
+local splot = require 'splot'
 -- local testmod = require 'submod.testmod'
 -- local test = require 'mod.test'
 
@@ -7,7 +7,7 @@ local _M = {}
 _M.descr = "test module"
 function _M.callme()
   print 'Being called'
-  -- print('Version', splot._VERSION)
+  print('Version', splot._VERSION)
   -- print('Testmod', testmod.test)
   -- print('test', test.saySomething("Yo"))
 end
