@@ -69,4 +69,6 @@ function _M.tableFunction(t: {"val": number}): {number: string}
     return {[t.val] = 'ok'}
 end
 
+print("sample1 loaded")
+
 return _M

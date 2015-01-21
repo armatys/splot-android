@@ -37,7 +37,7 @@ class SplotInternalPlugin implements Plugin<Project> {
                     doLast {
                         destDir.mkdirs()
                         srcFiles.getFiles().each { File file ->
-                            compileTypedLuaFile(file, destDir, (String)project.splot.luajitPath)
+                            compileTypedLuaFile(file, destDir, (String)project.splot.luaPath)
                         }
                     }
                 }
@@ -47,12 +47,12 @@ class SplotInternalPlugin implements Plugin<Project> {
         }
     }
 
-    static void compileTypedLuaFile(File file, File destDir, String luajitPath) {
+    static void compileTypedLuaFile(File file, File destDir, String luaPath) {
         def outFileName = tlExtPatt.matcher(file.getName()).replaceAll(/splot_lua_$1.lua/)
-        def compileCommand = [ "${luajitPath}", "typedlua/tlc", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
+        def compileCommand = [ "${luaPath}", "typedlua/tlc", "-o", "${destDir}/${outFileName}", "${file.getAbsolutePath()}"]
         println compileCommand
-        String luaPath = "splot/${luaSourcesPath}/?.lua;splot/${luaSourcesPath}/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
-        Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPath}"], null)
+        String luaPackagesPath = "splot/${luaSourcesPath}/?.lua;splot/${luaSourcesPath}/?/init.lua;typedlua/?.lua;typedlua/typedlua/?.lua;;"
+        Process compileProcess = compileCommand.execute(["LUA_PATH=${luaPackagesPath}"], null)
         compileProcess.in.eachLine { line -> println line }
         compileProcess.err.eachLine { line -> println line }
 
@@ -67,24 +67,24 @@ class SplotInternalPlugin implements Plugin<Project> {
 }
 
 android {
-    compileSdkVersion 20
-    buildToolsVersion "20.0.0"
+    compileSdkVersion 19
+    buildToolsVersion "21.1.2"
 
     defaultConfig {
-        applicationId "pl.makenika.splot"
+        //applicationId "io.splot"
         minSdkVersion 10
-        targetSdkVersion 20
+        targetSdkVersion 19
         versionCode 1
         versionName "1.0"
 
         ndk {
-            abiFilters "armeabi", "armeabi-v7a", "x86"
+            moduleName "splot"
+            cFlags "-DLUA_USE_DLOPEN -Wl,-E -D\"l_getlocaledecpoint()=('.')\""
+            ldLibs "dl"
         }
     }
     buildTypes {
         release {
-            runProguard false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 }

@@ -12,12 +12,15 @@ dependencies {
 
 processResources {
     from(parent.projectDir) {
-        include 'typedlua/typedlua/*.lua'
-        include 'typedlua/typedlua/*.tld'
+        // The directories should be basically the same as in SpotPlugin.groovy
         include 'typedlua/tlc'
+        include 'typedlua/typedlua/*.lua'
+        include 'typedlua/typedlua/lsl53/*.tld'
         include 'splot-code-gen/src/*.lua'
+        include 'splot-code-gen/src/*.tl'
+        include 'splot-code-gen/compile.sh'
     }
 }
 
 version = '1.0-SNAPSHOT'
-group = 'pl.makenika.splot.gradle'
+group = 'io.splot.gradle'
