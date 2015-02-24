@@ -33,15 +33,18 @@ public class SplotEngine {
         mStackIndexes = new ArrayDeque<Integer>();
     }
 
+    /** Returns the main Lua state used by this engine instance. */
     public LuaState getLuaState() {
         return mLuaState;
     }
 
+    /** Stores the current number of elements on the Lua stack. */
     public void saveStack() {
         final int n = mLuaState.getTop();
         mStackIndexes.addLast(n);
     }
 
+    /** Restores the Lua stack to the number of elements previously saved by {@code saveStack}. */
     public void restoreStack() {
         final Integer n = mStackIndexes.pollLast();
         if (n != null) {
@@ -51,12 +54,14 @@ public class SplotEngine {
         }
     }
 
+    /** Loads a Lua module from the app's assets. */
     public Pair<Boolean, String> loadLuaModule(String luaModuleName) throws IOException {
         luaModuleName = luaModuleName.replaceAll("\\.", "/");
         final InputStream is = mContext.getAssets().open("splot_lua/" + luaModuleName + ".lua");
         return loadInputStream(luaModuleName, is);
     }
 
+    /** Loads a Lua module using an input stream. */
     public Pair<Boolean, String> loadInputStream(String luaModuleName, InputStream luaFileInputStream) throws IOException {
         byte[] bytes = readAllBytes(luaFileInputStream);
         final int loadResult = mLuaState.LloadBuffer(bytes, luaModuleName);
@@ -75,6 +80,54 @@ public class SplotEngine {
         return new Pair<Boolean, String>(Boolean.TRUE, "");
     }
 
+    /** Creates a new reference for the table on top of the stack.
+     * @return Unique reference number.
+     */
+    public int addTableReference() {
+        return mLuaState.Lref(LuaState.LUA_REGISTRYINDEX);
+    }
+    
+    /** Removes the given reference from the registry. */
+    public void removeTableReference(int ref) {
+        mLuaState.LunRef(LuaState.LUA_REGISTRYINDEX, ref);
+    }
+
+    /** Create a new Lua state. */
+    private static LuaState newState(Context context) {
+        LuaState luaState = LuaStateFactory.newLuaState();
+        luaState.openLibs();
+
+        luaState.getGlobal("package");
+        luaState.getField(-1, "searchers");
+        int nLoaders = luaState.rawlen(-1);
+
+        // Move the default loaders up, since we want our loader to be the first on the list.
+        for (int i = nLoaders; i >= 1; i--) {
+            luaState.rawGetI(-1, i);
+            luaState.rawSetI(-2, i + 1);
+        }
+
+        try {
+            new LuaPrintFunction(luaState).register("print");
+        } catch (LuaException e) {
+            throw new RuntimeException("Could not register 'print' function: " + e.getLocalizedMessage());
+        }
+
+        try {
+            luaState.pushJavaFunction(new AssetLoaderFunction(luaState, context));   // package searchers searcher
+            luaState.rawSetI(-2, 1);       // package searchers
+            luaState.setTop(0);
+        } catch (LuaException e) {
+            throw new RuntimeException("Could not set the asset loader function: " + e.getLocalizedMessage());
+        }
+
+        return luaState;
+    }
+
+    /** The implementation for Lua's {@code print} function.
+     * The default implementation needs to be replaced, because we
+     * want to write using the Android's {@link android.util.Log}. 
+     */
     private static class LuaPrintFunction extends JavaFunction {
         private LuaPrintFunction(LuaState L) {
             super(L);
@@ -107,6 +160,7 @@ public class SplotEngine {
         }
     }
 
+    /** A Lua loader, that loads Lua modules from app's assets. */
     private static class AssetLoaderFunction extends JavaFunction {
         private Context mContext;
 
@@ -160,37 +214,7 @@ public class SplotEngine {
         }
     }
 
-    private static LuaState newState(Context context) {
-        LuaState luaState = LuaStateFactory.newLuaState();
-        luaState.openLibs();
-
-        luaState.getGlobal("package");
-        luaState.getField(-1, "searchers");
-        int nLoaders = luaState.rawlen(-1);
-
-        // Move the default loaders up, since we want our loader to be the first on the list.
-        for (int i = nLoaders; i >= 1; i--) {
-            luaState.rawGetI(-1, i);
-            luaState.rawSetI(-2, i + 1);
-        }
-
-        try {
-            new LuaPrintFunction(luaState).register("print");
-        } catch (LuaException e) {
-            throw new RuntimeException("Could not register 'print' function: " + e.getLocalizedMessage());
-        }
-
-        try {
-            luaState.pushJavaFunction(new AssetLoaderFunction(luaState, context));   // package searchers searcher
-            luaState.rawSetI(-2, 1);       // package searchers
-            luaState.setTop(0);
-        } catch (LuaException e) {
-            throw new RuntimeException("Could not set the asset loader function: " + e.getLocalizedMessage());
-        }
-
-        return luaState;
-    }
-
+    /** Reads all the data from the input stream. */
     private static ByteArrayOutputStream readAll(InputStream inputStream) throws IOException {
         final int N = 4096;
         final ByteArrayOutputStream output = new ByteArrayOutputStream(N);
@@ -206,11 +230,8 @@ public class SplotEngine {
         return output;
     }
 
+    /** Reads all the data from the input stream. */
     private static byte[] readAllBytes(InputStream inputStream) throws IOException {
         return readAll(inputStream).toByteArray();
     }
-//
-//    private static String readWholeString(InputStream inputStream) throws IOException {
-//        return readAll(inputStream).toString();
-//    }
 }
