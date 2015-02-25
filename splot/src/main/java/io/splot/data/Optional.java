@@ -9,6 +9,9 @@ public abstract class Optional<T> {
     }
 
     public static <T> Optional<T> just(T value) {
+        if (value == null) {
+            throw new NullPointerException("Cannot create a Just value with null pointer.");
+        }
         return new Just<T>(value);
     }
 
