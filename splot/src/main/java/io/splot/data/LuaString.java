@@ -1,4 +1,4 @@
-package io.splot;
+package io.splot.data;
 
 /** Represents a Lua string.
  * Created by mako on 23.02.2015.
